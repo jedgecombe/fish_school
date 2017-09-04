@@ -5,7 +5,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
 
-from spatial_utils import SpatialUtils
+from utils.spatial_utils import SpatialUtils
 
 logger = logging.getLogger(__name__)
 

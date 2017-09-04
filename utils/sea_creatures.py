@@ -2,8 +2,8 @@ import logging
 import math
 import random
 
-from environ import OceanEnvironment
-from spatial_utils import SpatialUtils
+from utils.environ import OceanEnvironment
+from utils.spatial_utils import SpatialUtils
 
 
 logger = logging.getLogger(__name__)

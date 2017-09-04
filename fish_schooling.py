@@ -2,10 +2,10 @@ import logging
 import math
 import random
 
-from spatial_utils import SpatialUtils
-from environ import OceanEnvironment
-from sea_creatures import Fish
-from tools import delete_and_rebuild_directory
+from utils.spatial_utils import SpatialUtils
+from utils.environ import OceanEnvironment
+from utils.sea_creatures import Fish
+from utils.tools import delete_and_rebuild_directory
 
 logging.basicConfig(
     format='%(asctime)s.%(msecs)03d - %(name)s:%(levelname)s - %(message)s',
