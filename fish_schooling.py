@@ -28,10 +28,11 @@ for dir in REBUILD_DIRECTORIES:
 
 the_sea = OceanEnvironment(bounding_coordinates=poly)
 fishes = 0
+wh = Whale(environment=the_sea)
 while len(the_sea.population) < FISH_TO_SPAWN:
     fsh = Snapper(environment=the_sea)
 
-wh = Whale(environment=the_sea)
+
 the_sea.get_fish()
 
 the_sea.save_snapshot(output_name='output/initial_config.png')
