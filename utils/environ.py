@@ -86,7 +86,7 @@ class OceanEnvironment:
         """
         calculate appropriate axes limits for chart
         :param buffer: increase to add more white space around edge of ocean
-        :return:
+        :return: lists: x axis limit, y axis limit
         """
         bbox = SpatialUtils.extract_bounding_box(self.boundary)
         min_x = bbox[0]
