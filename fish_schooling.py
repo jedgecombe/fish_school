@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 REBUILD_DIRECTORIES = ('output',)
 FISH_TO_SPAWN = 50
 
-
-poly = ((0, 30), (20, 10), (40, 10), (100, 0), (100, 30), (110, 50), (60, 80), (40, 70), (0, 30))
+poly = ((0, 30), (20, 10), (40, 10), (100, 0), (100, 30), (110, 50), (60, 20), (80, 40), (120, 20), (120, 50), (60, 80),
+        (40, 70), (0, 30))
 
 # create directories
 for dir in REBUILD_DIRECTORIES:
