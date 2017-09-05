@@ -4,6 +4,8 @@ import os
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
+from matplotlib.image import BboxImage
+from matplotlib.transforms import Bbox, TransformedBbox
 
 from utils.spatial_utils import SpatialUtils
 
@@ -70,14 +72,15 @@ class OceanEnvironment:
         plt.ylim(y_limit)
 
     def _add_fishes(self, axis):
-        # add size and colour
-        xs = []
-        ys = []
         for fish in self.population:
             if fish.welfare != 'dead':
-                xs.append(fish.position[0])
-                ys.append(fish.position[1])
-        axis.scatter(xs, ys)
+                # fits image to be within certain bounding box on page
+                bb = Bbox.from_bounds(x0=(fish.position[0]-fish.size/2), y0=(fish.position[1]-fish.size/2),
+                                      width=fish.size, height=fish.size)
+                bb2 = TransformedBbox(bb, axis.transData)
+                bbox_image = BboxImage(bb2, norm=None, origin=None, clip_on=False)
+                bbox_image.set_data(fish.graph_marker)
+                axis.add_artist(bbox_image)
 
     def _get_axes_limits(self, buffer: float=0.1):
         """

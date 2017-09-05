@@ -4,7 +4,7 @@ import random
 
 from utils.spatial_utils import SpatialUtils
 from utils.environ import OceanEnvironment
-from utils.sea_creatures import Fish
+from utils.sea_creatures import Fish, Snapper
 from utils.tools import delete_and_rebuild_directory
 
 logging.basicConfig(
@@ -16,8 +16,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-DIRECTORIES = ('INPUT', 'OUTPUT')
-FISH_TO_SPAWN = 5
+DIRECTORIES = ('output',)
+FISH_TO_SPAWN = 50
 
 
 # i = 0
@@ -30,7 +30,7 @@ FISH_TO_SPAWN = 5
 #     i = i + 1
 
 # JE write something to clear and create input / output
-poly = ((0, 3), (2, 1), (4, 1), (10, 0), (10, 3), (11, 5), (6, 8), (4, 7), (0, 3))
+poly = ((0, 30), (20, 10), (40, 10), (100, 0), (100, 30), (110, 50), (60, 80), (40, 70), (0, 30))
 
 # create directories
 for dir in DIRECTORIES:
@@ -38,8 +38,9 @@ for dir in DIRECTORIES:
 
 the_sea = OceanEnvironment(bounding_coordinates=poly)
 fishes = 0
-while len(the_sea.population) <= FISH_TO_SPAWN:
-    fsh = Fish(environment=the_sea, initial_position=None, place_attempts=3)
+while len(the_sea.population) < FISH_TO_SPAWN:
+    # fsh = Fish(environment=the_sea, initial_position=None, place_attempts=3)
+    wh = Snapper(environment=the_sea)
 the_sea.get_fish()
 
 the_sea.save_snapshot(output_name='output/initial_config.png')
