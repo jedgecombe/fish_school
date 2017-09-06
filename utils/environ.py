@@ -22,7 +22,7 @@ class OceanEnvironment:
         self.population = []
         self.subenvironment = None
 
-    def get_fish(self):
+    def get_fish_metadata(self):
         """
         log fish, grouped according to whether they are dead or alive
         :return: nothing
@@ -31,12 +31,26 @@ class OceanEnvironment:
         dead_fish = []
         for fish in self.population:
             if fish.welfare != 'dead':
-                alive_fish.append(fish.name)
+                fish_data = self._extract_fish_metadata(fish)
+                alive_fish.append(fish_data)
             else:
-                dead_fish.append(fish.name)
+                fish_data = self._extract_fish_metadata(fish)
+                dead_fish.append(fish_data)
         logger.info('number of alive fish: {} \n alive fish: {}'.format(len(alive_fish), alive_fish))
         logger.info('number of dead fish: {} \n dead fish: {}'.format(len(dead_fish), dead_fish))
 
+    @staticmethod
+    def _extract_fish_metadata(fish) -> dict:
+        name = fish.name
+        species = fish.species
+        welfare = fish.welfare
+        position = fish.position
+        edge_distance = fish.dist_to_closest_edge
+        return {'name': name, 'species': species, 'welfare': welfare, 'position': position,
+                'distance_to_closest_edge': edge_distance}
+
+    def get_ocean_metadata(self):
+        pass
     #### JE something to describe ocean - particularly size
 
     def save_snapshot(self, output_name: str):
@@ -57,7 +71,7 @@ class OceanEnvironment:
         """
         add ocean perimeter as patch
         :param axis: chart axis to add to
-        :return:
+        :return: nothing
         """
 
         patches = []
@@ -72,6 +86,11 @@ class OceanEnvironment:
         plt.ylim(y_limit)
 
     def _add_fishes(self, axis):
+        """
+        add fish to the chart as markers from png
+        :param axis: chart axis to add to
+        :return: nothing
+        """
         for fish in self.population:
             if fish.welfare != 'dead':
                 # fits image to be within certain bounding box on page
@@ -101,3 +120,8 @@ class OceanEnvironment:
         y_limit = [min_y-y_buffer, max_y+y_buffer]
         return x_limit, y_limit
 
+
+class NearbyWaters(OceanEnvironment):
+    def __init__(self, fish, ocean: OceanEnvironment):
+        OceanEnvironment.__init__()
+        pass
