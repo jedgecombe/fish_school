@@ -126,6 +126,7 @@ class SpatialUtils:
             proof here: https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
         :return: minimum distance from point to boundary
         """
+        # if coordinates is not None:
         vertices_num = len(polygon)
         distances_to_edge = []
         for i in range(vertices_num - 1):
