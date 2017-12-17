@@ -1,5 +1,6 @@
 import logging
 import math
+import sys
 
 
 logger = logging.getLogger(__name__)
@@ -88,7 +89,7 @@ class SpatialUtils:
             number = SpatialUtils._crossing_number(coordinates=coordinates, polygon=polygon)
         else:
             logger.warning('incorrect method selected, please choose from: [winding, crossing], exiting')
-            exit()
+            sys.exit(1)
 
         if number == 0:
             contains = False
@@ -172,4 +173,4 @@ class SpatialUtils:
         for incr in range(increments):
             pass
 
-        return tuple(out_list)  # JE need to check this is how you convert list to tuple
+        return tuple(out_list)
