@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 FISH_NAMES = ['nemo', 'marvin', 'dyl', 'jal', 'ace', 'beatrix', 'cybil', 'lola', 'poppy',
               'zelda', 'ace', 'buster', 'dexter', 'finn', 'gunner', 'quinton', 'delilah', 'racer',
               'trixie', 'zeus', 'barnaby', 'tarquin', 'moby', 'free willy', 'jaws', 'bernie', 'suzanne',
-              'chomper']
+              'chomper', 'antonella', 'auntie jane']
 
 
 class OceanEnvironment:
@@ -34,8 +34,6 @@ class OceanEnvironment:
         self.boundary = bounding_coordinates
         self.population = []
         self.populated_sorted = self._sort_population_according_to_incentive()
-
-        # self.background_colour = '#f6e5ae'
         self.sea_colour = '#006994'
 
     def get_fish_metadata(self):
@@ -56,27 +54,30 @@ class OceanEnvironment:
         logger.info('number of alive fish: {}'.format(len(alive_fish)))
         logger.info('number of dead fish: {}'.format(len(dead_fish)))
 
-    def let_time_pass(self, moves_in_time_period):
+    def let_time_pass(self, moves_in_time_period: int):
         """
         first recalculate all fish's incentives to move
         find fish who want to move most
-        :param moves_in_time_period: number of fish to move
+        :param moves_in_time_period: number of moves for each fish
         :return: nothing, just output logs
         """
-        for fsh_num in range(len(self.population)):
-            agitated_fish = self.population[fsh_num]
-            initial_position = agitated_fish.position
-            initial_rotation = agitated_fish.rotation
-            next_pos = agitated_fish.choose_next_move()
-            next_rotation = agitated_fish.rotation
-            agitated_fish.position = next_pos
-            dist = SpatialUtils.calc_distance(initial_position, next_pos)
-            logger.debug('{} ({}) moved from {} to {}, distance: {}, rotation from {} to {}'.format(agitated_fish.name,
-                                                                                                    agitated_fish.species,
-                                                                                                    initial_position,
-                                                                                                    next_pos, dist,
-                                                                                                    initial_rotation,
-                                                                                                    next_rotation))
+        for move in range(moves_in_time_period):
+            logger.info('\n move: {}'.format(move))
+            for fsh_num in range(len(self.population)):
+                agitated_fish = self.population[fsh_num]
+                initial_position = agitated_fish.position
+                initial_rotation = agitated_fish.rotation
+                next_pos = agitated_fish.choose_next_move()
+                next_rotation = agitated_fish.rotation
+                agitated_fish.position = next_pos
+                dist = SpatialUtils.calc_distance(initial_position, next_pos)
+                logger.debug(
+                    '{} ({}) moved from {} to {}, distance: {}, rotation from {} to {}'.format(agitated_fish.name,
+                                                                                               agitated_fish.species,
+                                                                                               initial_position,
+                                                                                               next_pos, dist,
+                                                                                               initial_rotation,
+                                                                                               next_rotation))
         # self.assess_desire_to_move()
         ## following is for when using predator count to determine whether or not they move
         # for fsh_num in range(moves_in_time_period):
@@ -103,11 +104,6 @@ class OceanEnvironment:
         """
         for fsh in self.population:
             fsh.incentive_to_move = 1
-            # refresh sub environ
-            # sub_env = NearbyWaters(fish=fsh, ocean=self)
-            # if it fish has available moves, incentive to move = number of predators in area
-            # if len(fsh.possible_moves) > 0:
-            #     fsh.incentive_to_move = sub_env.predator_count
         self.populated_sorted = self._sort_population_according_to_incentive()
 
     def _sort_population_according_to_incentive(self):
@@ -123,8 +119,8 @@ class OceanEnvironment:
                 'align_fish': align_fish, 'follow_fish': follow_fish}
 
     def get_ocean_metadata(self):
+        # TODO something to describe ocean - particularly size
         pass
-    #### JE something to describe ocean - particularly size
 
     def save_snapshot(self, output_name: str):
         """
@@ -135,7 +131,6 @@ class OceanEnvironment:
 
         save_path = os.path.join(output_name)
         fig, ax = plt.subplots()
-        # ax.set_facecolor(self.background_colour)
         self._add_ocean(ax)
         self._add_fishes(ax)
 
@@ -201,10 +196,27 @@ class OceanEnvironment:
 
 
 class Fish:
-    def __init__(self, environment: OceanEnvironment, species: str, fish_type: str, fish_name: str=None,
+    def __init__(self, environment: OceanEnvironment, species: str, eats_fish: tuple=(), fish_name: str=None,
                  initial_position: tuple=None, size=1, max_movement_radius=0,
                  repel_dist=0, align_dist=0, follow_dist=0,
-                 place_attempts: int=3, fish_image_filepath: str='input/fish.png'):
+                 place_attempts: int=3, fish_image_filepath: str = 'input/fish.png'):
+        """
+        :param environment: the ocean that the fish lives in
+        :param species: the type of fish
+        :param eats_fish: the type of fish that this fish can eat
+        :param fish_name: this fish's name e.g. Joe
+        :param initial_position: the coordinates where this fish will be spawned
+        :param size: the size of this fish
+        :param max_movement_radius: how far this fish can move in a single turn
+        :param repel_dist: the max distance which the focal fish believes is too close to other fish
+        :param align_dist: within this distance (and greater than repel distance), the focal fish will want to
+            align with other fish of the same species
+        :param follow_dist: within this distance (and greater than the align distance), the focal fish will want to
+            get closer to other fish of the same species
+        :param place_attempts: the number of times that will try to spawn the fish before the fish dies
+        :param fish_image_filepath: the path to the image of the file
+        """
+
         # ocean data
         self.environment = environment
 
@@ -212,7 +224,7 @@ class Fish:
         self.image = plt.imread(fish_image_filepath)
         self.unique_id = self.generate_unique_id()
         self.species = species
-        self.fish_type = fish_type
+        self.eats_fish = eats_fish  # preys on these fish species
         self.size = size
         self.repel_distance = repel_dist  # less than this distance focal fish will swim away to avoid collision
         self.align_distance = align_dist  # focal fish will seek to align direction with neighbours
@@ -223,8 +235,7 @@ class Fish:
 
         # fish positional information
         self.possible_moves = self.find_possible_moves_relative()
-        # self.fish_pos = FishPosition(environment=self.environment, focal_fish=self)
-        self.position = FishPosition(environment=self.environment, focal_fish=self).set_pos(place_attempts) if initial_position is None else initial_position
+        self.position = self.set_pos(place_attempts) if initial_position is None else initial_position
         self.position = (666, 666) if self.position is None else self.position  # give random position if not place
         self.rotation = self.choose_random_rotation()
         self.dist_to_closest_edge = self.distance_to_boundary()
@@ -238,7 +249,6 @@ class Fish:
 
         # next move information
         self.incentive_to_move = 0
-        self.next_move = None
 
         self.environment.population.append(self)
 
@@ -256,7 +266,6 @@ class Fish:
         finds list of moves that are within a fish's maximum movement radius
         cycles through all coordinate pairs of inside bounding box of centre coords +- circle_radius
             then compares whether coordinate generated is within the circle_radius
-        :param circle_radius: circle_radius of circle to be considered
         :return: list of coordinates within a circle within radius = circle_radius
         """
         coords_within_radius = []
@@ -274,7 +283,6 @@ class Fish:
     @staticmethod
     def choose_random_rotation():
         available_rotations = tuple(range(0, 360, 45))
-        print(available_rotations)
         return random.choice(available_rotations)
 
     def generate_unique_id(self):
@@ -285,48 +293,137 @@ class Fish:
         return self.dist_to_closest_edge
 
     def choose_next_move(self):
-        """choose next move at random from available moves"""
+        """"""
+        def create_move_options(central_coordinate: tuple, shift_num: int) -> list:
+            """creates four coordinates around a central coordinate - above, below, left, right"""
+            return [(central_coordinate[0], central_coordinate[1] + shift_num),
+                    (central_coordinate[0], central_coordinate[1] - shift_num),
+                    (central_coordinate[0] + shift_num, central_coordinate[1]),
+                    (central_coordinate[0] - shift_num, central_coordinate[1])]
+
         self.update_nearby_waters()
-        repel_fish = extract_nearby_fish_names(self.sub_env.repel_fish)
-        align_fish = extract_nearby_fish_names(self.sub_env.align_fish)
-        follow_fish = extract_nearby_fish_names(self.sub_env.follow_fish)
-        if len(repel_fish) > 0:
-            # update this with a more intelligent route to take - perhaps just away from the repel fish
-            chosen_move = random.choice(self.sub_env.available_moves)
-            logger.debug('{} ({}) panicked and tried to swim away from: {}'.format(self.name, self.unique_id,
-                                                                                   repel_fish))
-        elif len(align_fish) > 0:
-            # if want to align, stay in same location, just change rotation to match that of average rotation of group
-            chosen_move = self.position
-            new_rotation = np.mean([x.rotation for x in self.sub_env.align_fish])
-            logger.debug('{} ({}) wants to align with: {}'.format(self.name, self.unique_id, align_fish))
-            self.rotation = new_rotation
-            self.graph_marker = ndimage.rotate(self.image, self.rotation)
-        elif len(follow_fish) > 0:
-            chosen_move = self.position
-        # self.incentive_to_move = self.incentive_to_move - 1
-        else:
-            chosen_move = self.position
-        return chosen_move
+        # only move if it has somewhere it can go else stay in the same location
+        if len(self.sub_env.available_moves) > 0:
+            if len(self.sub_env.repel_fish) > 0:
+                repel_fish = extract_nearby_fish_names(self.sub_env.repel_fish)
+                move_to_try, self.rotation = self._move_repel()
+                logger.debug('{} ({}) panicked and tried to swim away from: {}'.format(self.name, self.unique_id,
+                                                                                       repel_fish))
+            elif len(self.sub_env.align_fish) > 0:
+                align_fish = extract_nearby_fish_names(self.sub_env.align_fish)
+                move_to_try, self.rotation = self._move_align()
+                self.graph_marker = ndimage.rotate(self.image, self.rotation)  # update graph marker with new rotation
+                logger.debug('{} ({}) wants to align with: {}'.format(self.name, self.unique_id, align_fish))
+            elif len(self.sub_env.follow_fish) > 0:
+                follow_fish = extract_nearby_fish_names(self.sub_env.follow_fish)
+                move_to_try, self.rotation = self._move_follow()
+                logger.debug('{} ({}) wants to follow: {}'.format(self.name, self.unique_id, follow_fish))
+            else:
+                move_to_try, self.rotation = self._move_random()
+                logger.debug('{} ({}) could not see other fish so moved randomly'.format(self.name, self.unique_id))
+
+            # round to integer coordinate
+            rounded_move_to_try = (int(move_to_try[0]), int(move_to_try[1]))
+
+            # try a maximum of n shift attempts
+            shift_attempts = 10
+            for shift_attempt in range(shift_attempts):
+                shifted_moves = create_move_options(rounded_move_to_try, shift_attempt)
+                # loop through move options randomly choosing each time (thereby keeping element of randomness)
+                shift_direction = 0
+                while shift_direction < 4 and move_to_try not in self.sub_env.available_moves:
+                    move_to_try = random.choice(shifted_moves)
+                    shift_direction += 1
+                    shifted_moves.remove(move_to_try)
+                if len(shifted_moves) > 0:  # if there are moves left it implies one was available so break loop
+                    self.position = move_to_try
+                    break
+            if shift_attempt == shift_attempts - 1:
+                logger.debug('{} ({}) could not find anywhere to move so chilled out'.format(self.name,
+                                                                                             self.unique_id))
+        return self.position
+
+    def _move_repel(self) -> tuple:
+        """
+        find average direction to repel fish, move in opposite direction to average repel fish direction,
+            calculate the ideal location for the fish to move based on the above angle and max travel distance
+        :return: the optimal location to move to, note that this location may not be available (e.g. occupied)
+        """
+        dir_to_fish = np.mean([SpatialUtils.calc_angle(self.position, other_fish.position) for other_fish in
+                               self.sub_env.repel_fish])
+        opposite_dir = dir_to_fish - 180  # move away from close fish
+        optimal_move = SpatialUtils.new_position_angle_length(starting_coordinates=self.position, angle=opposite_dir,
+                                                              distance=self.max_movement_radius)
+        return optimal_move, self.rotation
+
+    def _move_align(self) -> tuple:
+        # if want to align, stay in same location, just change rotation to match that of average rotation of group
+        new_rotation = np.mean([x.rotation for x in self.sub_env.align_fish])
+
+        dist_to_closest = np.min([SpatialUtils.calc_distance(self.position, other_fish.position) for other_fish in
+                                  self.sub_env.align_fish])
+        # aim to move some distance between the repel and align distance from the nearest fish
+        # use random choice from 4 intervals in this range
+        move_dist = random.choice(
+            [x for x in np.arange(dist_to_closest - self.size - self.align_distance,
+                                  dist_to_closest - self.size - self.repel_distance + 1, step=4)])
+        optimal_move = SpatialUtils.new_position_angle_length(starting_coordinates=self.position, angle=new_rotation,
+                                                              distance=move_dist)
+        return optimal_move, int(new_rotation)
+
+    def _move_follow(self) -> tuple:
+        """
+        find average direction to follow fish, move in that direction so that align distance away from closest
+            follow fish
+        :return: the optimal location to move to, note that this location may not be available (e.g. occupied)
+        """
+        dir_to_fish = np.mean([SpatialUtils.calc_angle(self.position, other_fish.position) for other_fish in
+                               self.sub_env.follow_fish])
+        dist_to_closest = np.min([SpatialUtils.calc_distance(self.position, other_fish.position) for other_fish in
+                                  self.sub_env.follow_fish])
+        # aim to move some distance between the repel and align distance from the nearest fish
+        # use random choice from 4 intervals in this range
+        move_dist = random.choice(
+            [x for x in np.arange(dist_to_closest - self.size - self.align_distance,
+                                  dist_to_closest - self.size - self.repel_distance + 1, step=4)])
+        optimal_move = SpatialUtils.new_position_angle_length(starting_coordinates=self.position, angle=dir_to_fish,
+                                                              distance=move_dist)
+        return optimal_move, self.rotation
+
+    def _move_random(self) -> tuple:
+        random_position = random.choice(self.sub_env.available_moves)
+
+        return random_position, self.rotation
+
+    def set_pos(self, place_attempts) -> tuple:
+        """set the position of the fish in the environment, try n times before giving up"""
+        bbox = SpatialUtils.extract_bounding_box(self.environment.boundary)
+        for attempt in range(place_attempts):
+            # generate random coordinate within bounding box
+            proposed_postion = (random.randint(bbox[0], bbox[2]), random.randint(bbox[1], bbox[3]))
+            # check if it is within the polygon (i.e. the ocean)
+            if SpatialUtils.poly_contains_point(coordinates=proposed_postion, polygon=self.environment.boundary,
+                                                method='winding'):
+                logger.info('sploosh! {} ({}) landed in the water! {}'.format(self.name, self.unique_id,
+                                                                              proposed_postion))
+                return proposed_postion
+            else:
+                logger.info('flop! {} ({}) cannot swim outside of the ocean: {}'.format(self.name, self.unique_id,
+                                                                                        proposed_postion))
 
 
 class Snapper(Fish):
-    def __init__(self, environment: OceanEnvironment,
-                 fish_name: str=None,
-                 initial_position: tuple=None):
-        super().__init__(environment=environment, species='snapper', fish_type='prey',
-                         initial_position=initial_position,
-                         fish_name=fish_name, size=5, max_movement_radius=10, repel_dist=1,
-                         align_dist=3, follow_dist=10)
+    def __init__(self, environment: OceanEnvironment, fish_name: str=None, initial_position: tuple=None):
+        super().__init__(environment=environment, species='snapper', initial_position=initial_position,
+                         fish_name=fish_name, size=5, max_movement_radius=10, repel_dist=2,
+                         align_dist=5, follow_dist=10, eats_fish=())
 
 
 class Whale(Fish):
-    def __init__(self, environment: OceanEnvironment,
-                 fish_name: str=None, initial_position: tuple=None):
-        super().__init__(environment=environment, species='whale', fish_type='predator',
-                         initial_position=initial_position,
+    def __init__(self, environment: OceanEnvironment, fish_name: str=None, initial_position: tuple=None):
+        super().__init__(environment=environment, species='whale', initial_position=initial_position,
                          fish_name=fish_name, size=15, max_movement_radius=10, repel_dist=1,
-                         align_dist=3, follow_dist=15)
+                         align_dist=3, follow_dist=15, eats_fish=('Snapper', ))
 
 
 class NearbyWaters:
@@ -342,27 +439,32 @@ class NearbyWaters:
         self.centre_coordinates = self.fish.position
         self.environ_radius = self.fish.follow_distance
 
-        self.repel_fish, self.align_fish, self.follow_fish = FishPosition(self.ocean, self.fish).find_nearby_fish()
+        self.repel_fish, self.align_fish, self.follow_fish = self.find_nearby_fish()
         self.all_nearby_fish = self.repel_fish + self.align_fish + self.follow_fish
-        self.predator_count = 0 if self.fish.fish_type == 'predator' else self.count_predators()
+        self.predator_count = self.count_predators()
 
         self.available_moves = self.update_available_moves()
 
     def count_predators(self):
+        """return number of predators of that fish type within a fish's 'follow range'"""
         predator_count = 0
         for fsh in self.all_nearby_fish:
-            if fsh.fish_type == 'predator':
+            if self.fish.species in fsh.eats_fish:
                 predator_count += 1
         self.predator_count = predator_count
         return predator_count
 
     def update_available_moves(self) -> list:
+        """return the moves that are within fish's movement radius, not occupied by other fish, and within the
+                boundary
+                """
         if self.fish.welfare == 'dead':
             empty_coordinates = [(666, 666)]
         else:
             coords_within_radius = [(i[0] + self.fish.position[0], i[1] + self.fish.position[1]) for i in
                                     self.fish.possible_moves]
-            environ_coordinates = self.find_coordinates_within_sub_environment(coords_within_radius, self.ocean.boundary)
+            environ_coordinates = self.find_coordinates_within_sub_environment(coords_within_radius,
+                                                                               self.ocean.boundary)
             empty_coordinates = self.find_empty_coordinates(all_coordinates=environ_coordinates,
                                                             nearby_fish=self.all_nearby_fish)
         return empty_coordinates
@@ -388,58 +490,16 @@ class NearbyWaters:
         :param nearby_fish: list of fish within sub-environment
         :return: list with all empty coordinates within sub-environment
         """
-        updated_coordinate_list = all_coordinates
-        for coord in all_coordinates:
-            for fsh in nearby_fish:
-                space_necessary = self.fish.size + fsh.size
-                if SpatialUtils.calc_distance(coord, fsh.position) < space_necessary:
-                    updated_coordinate_list.remove(coord)
-                break
-        return updated_coordinate_list
-
-
-class FishPosition:
-    def __init__(self, environment: OceanEnvironment, focal_fish: Fish):
-        self.environment = environment
-        self.fish = focal_fish
-
-    def set_pos(self, place_attempts) -> tuple:
-        """set the position of the fish in the environment, try n times before giving up"""
-        bbox = SpatialUtils.extract_bounding_box(self.environment.boundary)
-        for attempt in range(place_attempts):
-            self.fish.position = self.generate_random_position(bounding_box=bbox, full_boundary=self.environment.boundary)
-            logger.debug(
-                'position generated for {} ({}): {}'.format(self.fish.name, self.fish.unique_id, self.fish.position))
-            if self.fish.position is not None:
-                other_fish = self.find_all_other_fish()
-                if self.detect_fish_collision(self.fish.position, other_fish):
-                    logger.debug('generating new starting location for: {} ({})'.format(self.fish.name,
-                                                                                        self.fish.unique_id))
-                    self.fish.position = None
-                else:
-                    logger.debug('successfully avoided collision for {} ({}) on attempt: {}'.format(self.fish.name,
-                                                                                                    self.fish.unique_id,
-                                                                                                    attempt))
-                    break
-
-        return self.fish.position
-
-    def generate_random_position(self, bounding_box: tuple, full_boundary: tuple) -> tuple:
-        """
-        generate random starting position within bounding box of environment
-        :param bounding_box: bounding box to generate within
-        :param full_boundary: boundary coordinates of area
-        :return: coordinates of position generated if within the area, else None
-        """
-        proposed_starting_pos = (random.randint(bounding_box[0], bounding_box[2]),
-                                 random.randint(bounding_box[1], bounding_box[3]))
-        if SpatialUtils.poly_contains_point(coordinates=proposed_starting_pos, polygon=full_boundary,
-                                            method='winding'):
-            logger.info('sploosh! {} ({}) landed in the water! {}'.format(self.fish.name, self.fish.unique_id,
-                                                                          proposed_starting_pos))
-            return proposed_starting_pos
+        if len(nearby_fish) == 0:  # if no fish nearby
+            updated_coordinate_list = all_coordinates
         else:
-            logger.info('flop! {} ({}) cannot swim outside of the ocean: {}'.format(self.fish.name, self.fish.unique_id, proposed_starting_pos))
+            updated_coordinate_list = []
+            for coord in all_coordinates:
+                for fsh in nearby_fish:
+                    space_necessary = self.fish.size
+                    if SpatialUtils.calc_distance(coord, fsh.position) >= space_necessary:
+                        updated_coordinate_list.append(coord)
+        return updated_coordinate_list
 
     def find_nearby_fish(self) -> tuple:
         """
@@ -455,45 +515,24 @@ class FishPosition:
         align_fish = []
         repel_fish = []
         for other_fish in all_other_fish:
-            ## exclude those that are out range without
-            # if (abs(self.fish.position[0] - self.fish.position[0]) > self.fish.follow_distance) or (
-            #     abs(self.fish.position[1] - self.fish.position[1]) > self.fish.follow_distance):
-            #     continue
             distance_between_fish = SpatialUtils.calc_distance(self.fish.position, other_fish.position)
-            # account for sizes of fish
-            distance_between_fish = distance_between_fish - self.fish.size - other_fish.size
+            distance_between_fish = distance_between_fish - self.fish.size
             if distance_between_fish <= self.fish.repel_distance:
                 repel_fish.append(other_fish)
-            elif distance_between_fish <= self.fish.align_distance:
+            elif self.fish.align_distance >= distance_between_fish > self.fish.repel_distance \
+                    and self.fish.species == other_fish.species:
                 align_fish.append(other_fish)
-            elif distance_between_fish <= self.fish.follow_distance:
+            elif self.fish.follow_distance >= distance_between_fish > self.fish.align_distance \
+                    and self.fish.species == other_fish.species:
                 follow_fish.append(other_fish)
         return repel_fish, align_fish, follow_fish
-
-    def detect_fish_collision(self, coordinates: tuple, comparison_group: list) -> bool:
-        """
-        cycles through and compares coordinates against other group of fish, assessing
-            whether fish is closer than the maximum radius of the two fish
-        :param coordinates: coordinates of focal fish
-        :param comparison_group: group to compare against
-        :return: true if there is a collision
-        """
-        for other in comparison_group:
-            distance_between = SpatialUtils.calc_distance(coordinates, other.position)
-            if distance_between < max([self.fish.size, other.size]):
-                logger.debug('collision between fish: {} ({}), and: {} ({})'.format(self.fish.name, self.fish.unique_id,
-                                                                                    other.name, other.unique_id))
-                return True
-
-    def detect_edge_collision(self):
-        pass
 
     def find_all_other_fish(self) -> list:
         """find other fish in their current positions
             remove current fish and dead fish from list of fish being considered
         """
         other_fish = []
-        for fish in self.environment.population:
+        for fish in self.ocean.population:
             if fish.unique_id != self.fish.unique_id and fish.welfare != 'dead':
                 other_fish.append(fish)
         return other_fish

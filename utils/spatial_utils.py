@@ -127,7 +127,6 @@ class SpatialUtils:
             proof here: https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
         :return: minimum distance from point to boundary
         """
-        # if coordinates is not None:
         vertices_num = len(polygon)
         distances_to_edge = []
         for i in range(vertices_num - 1):
@@ -155,9 +154,20 @@ class SpatialUtils:
 
     @staticmethod
     def calc_angle(coordinates1, coordinates2):
-        deltaY = coordinates2.coordinates[1] - coordinates1.coordinates[1]
-        deltaX = coordinates2.coordinates[0] - coordinates1.coordinates[0]
-        return math.degrees(math.atan2(deltaY, deltaX))
+        delta_y = coordinates2[1] - coordinates1[1]
+        delta_x = coordinates2[0] - coordinates1[0]
+        return math.degrees(math.atan2(delta_y, delta_x))
+
+    @staticmethod
+    def new_position_angle_length(angle: float, distance: int, starting_coordinates: tuple):
+        """generate new position based on the angle, distance, and starting point"""
+        # calc cosine of angle and multiply by the distance
+        cosin_ang = math.cos(math.radians(angle)) * distance
+        # calc sine of angle and multiply by the distance
+        sin_ang = math.sin(math.radians(angle)) * distance
+        # add cosine to x and sine to y to give new coord
+        return starting_coordinates[0] + cosin_ang, starting_coordinates[1] + sin_ang
+
 
     @staticmethod
     def generate_circle_boundary(starting_coords: tuple, radius: int, increments: int=360) -> tuple:
