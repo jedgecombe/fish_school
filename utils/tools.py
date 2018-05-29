@@ -5,12 +5,13 @@ import shutil
 logger = logging.getLogger(__name__)
 
 
-def delete_and_rebuild_directory(directory_path: str):
+def delete_and_rebuild_directory(directory_paths: list):
     """
-    clear directory of all files
+    clear directories in directory_paths of all files by deleting and recreating
     """
-    if os.path.exists(directory_path):
-        shutil.rmtree(directory_path)
-        logger.info('deleted directory: {}'.format(directory_path))
-    os.makedirs(directory_path)
-    logger.info('created directory: {}'.format(directory_path))
+    for dir in directory_paths:
+        if os.path.exists(dir):
+            shutil.rmtree(dir)
+            logger.info('deleted directory: {}'.format(dir))
+        os.makedirs(dir)
+        logger.info('created directory: {}'.format(dir))

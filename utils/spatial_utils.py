@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class SpatialUtils:
     @staticmethod
-    def is_left(coordinates: tuple, vertex1: tuple, vertex2: tuple) -> float:
+    def is_left(coordinates: list, vertex1: list, vertex2: list) -> float:
         """
         tests if a point is left, on, or right on an infinite line
         :param coordinates: point to compare to line
@@ -31,7 +31,7 @@ class SpatialUtils:
         return a - b
 
     @staticmethod
-    def _winding_number(coordinates: tuple, polygon: tuple) -> int:
+    def _winding_number(coordinates: list, polygon: tuple) -> int:
         """
         approach is correct for simple and non simple polygons
         :return: 0 if outside of polygon
@@ -54,7 +54,7 @@ class SpatialUtils:
         return winding_number_counter
 
     @staticmethod
-    def _crossing_number(coordinates: tuple, polygon: tuple) -> int:
+    def _crossing_number(coordinates: list, polygon: tuple) -> int:
         """
         approach only works for simple polygons (i.e. no self intersections)
         :return: 0 if even number of crosses - outside of polygon
@@ -80,7 +80,7 @@ class SpatialUtils:
         return crossing_number_counter % 2
 
     @staticmethod
-    def poly_contains_point(coordinates: tuple, polygon: tuple, method: str= 'winding') -> bool:
+    def poly_contains_point(coordinates: list, polygon: tuple, method: str= 'winding') -> bool:
         assert polygon[0] == polygon[-1]
 
         if method == 'winding':
@@ -121,7 +121,7 @@ class SpatialUtils:
         return bbox
 
     @staticmethod
-    def distance_to_boundary(coordinates: tuple, polygon: tuple) -> float:
+    def distance_to_boundary(coordinates: list, polygon: tuple) -> float:
         """
         cycles through each line of polygon finding distance to line then returns minimum
             proof here: https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
@@ -141,7 +141,7 @@ class SpatialUtils:
         return round(min(distances_to_edge), 3)
 
     @staticmethod
-    def calc_distance(coordinates1: tuple, coordinates2: tuple) -> float:
+    def calc_distance(coordinates1: list, coordinates2: list) -> float:
         """
         calc distance between two points (units in same units as coordinates)
         :param coordinates1: coordinates of point 1
@@ -159,7 +159,7 @@ class SpatialUtils:
         return math.degrees(math.atan2(delta_y, delta_x))
 
     @staticmethod
-    def new_position_angle_length(angle: float, distance: int, starting_coordinates: tuple):
+    def new_position_angle_length(angle: float, distance: int, starting_coordinates: list):
         """generate new position based on the angle, distance, and starting point"""
         # calc cosine of angle and multiply by the distance
         cosin_ang = math.cos(math.radians(angle)) * distance
