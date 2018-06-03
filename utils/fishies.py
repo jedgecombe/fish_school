@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class Fish:
-    def __init__(self, name_options: list, eats_fish: tuple=(), size=1, colour='grey', max_movement_radius=0,
+    def __init__(self, name_options: list, eats_fish: tuple=(), size=1, colour='white', max_movement_radius=0,
                  repel_dist=0, align_dist=0, follow_dist=0):
         """
         :param environment: the ocean that the fish lives in

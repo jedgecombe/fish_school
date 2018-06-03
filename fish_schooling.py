@@ -14,14 +14,14 @@ logger = logging.getLogger(__name__)
 
 """
 TODO
-   * replace DBSCAN import with something written myself
    * update fish names to those in data science off-site
    * remove species reference as text argument - can probably just achieve the same using the type - THINK I've done this but not checked it works
    * maybe make the graveyard and ocean subclass of something like 'world' - would then be easier to save a snaps short of each
    * think there are unused attributes - find and remove
-    * fix shoal clustering - probably do this within animate function as should happen for every time period
+   * fix shoal clustering - probably do this within animate function as should happen for every time period
    * NEXT - when fish have fish to follow, they just chill if their range is too far - this indicates something wrong with the random.choice of moves
-   * NEXT UPDATE - finish on creating fish memory. Maybe add previous_rotation for consistency with previous_positiono
+   * NEXT UPDATE - finish on creating fish memory. Maybe add previous_rotation for consistency with previous_position
+   * DBSCAN should happen according to follow distance - for this to work the clustering needs to happen for each species separately
 """
 
 
@@ -36,7 +36,7 @@ FISH_TO_SPAWN = 15
 SHARKS_TO_SPAWN = 1
 OCEAN_SCALE = 5  # to make ocean larger or smaller - integer
 MOVES_PER_PERIOD = 1
-PERIODS = 200
+PERIODS = 50
 
 # unscaled coordinate bounds of ocean edge
 OCEAN_BOUNDS = ((0, 10), (20, -10), (35, -15), (40, -5), (50, 5), (60, 10), (80, 0), (90, 30), (70, 60),
@@ -63,12 +63,6 @@ def main():
 
     # the_sea.save_snapshot(output_name='output/initial_config.png')
     the_sea.passage_of_time(PERIODS, save_filename='output/movements.mp4')
-    #
-    # for move in range(PERIODS):
-    #     the_sea.let_time_pass(MOVES_PER_PERIOD)
-    #     the_sea.save_snapshot(output_name=f'output/time_{move+1}.mp4')
-    #
-    #     the_sea.get_fish_metadata()
 
 
 if __name__ == '__main__':

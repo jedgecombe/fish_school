@@ -1,20 +1,19 @@
 import logging
-import math
 import os
 
+import matplotlib as mpl
+mpl.use('TkAgg')
 import matplotlib.animation as animation
-from matplotlib.collections import PatchCollection, PathCollection
+from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
-from matplotlib.image import BboxImage
-from matplotlib.transforms import Bbox, TransformedBbox
-from matplotlib.artist import getp
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 import numpy as np
-from sklearn.cluster import DBSCAN
+# from sklearn.cluster import DBSCAN
 
 from utils.spatial_utils import SpatialUtils
+from utils.dbscan import DBSCAN
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +87,12 @@ class OceanEnvironment:
 
     def _assign_shoals(self, shoal_labels):
         for fsh, cluster in zip(self.population, shoal_labels):
-            fsh.shoal_id = None if cluster == -1 else cluster
+            if cluster == -1:
+                fsh.shoal_id = None
+            else:
+                fsh.shoal_id = cluster
+
+            # fsh.shoal_id = None if cluster == -1 else cluster
 
     def _extract_fish_positions(self) -> list:
         """
@@ -141,17 +145,16 @@ class OceanEnvironment:
                         continue
             for fsh in self.population:
                 fsh.swim()
-                # TODO change colour reference to being a property of the fish
                 ln = Line2D([fsh.previous_position[0], fsh.position[0]], [fsh.previous_position[1], fsh.position[1]],
-                            marker=fsh.custom_marker, markersize=fsh.size,  c='orange', linestyle='none',
+                            marker=fsh.custom_marker, markersize=fsh.size,  c=fsh.colour, linestyle='none',
                             markevery=[1])
 
                 ax.text(fsh.position[0], fsh.position[1], f'{fsh.name} ({fsh.unique_id})', fontsize=6)
                 ax.add_line(ln)
 
-            # population_coords = self._extract_fish_positions()
-            # db = DBSCAN(eps=10, min_samples=2).fit(population_coords)  # TODO update eps to close to follow_distance
-            # self._assign_shoals(shoal_labels=db.labels_)
+            population_coords = self._extract_fish_positions()
+            cluster_labels = DBSCAN(D=population_coords, eps=100, MinPts=2) # TODO update eps to close to follow_distance
+            self._assign_shoals(shoal_labels=cluster_labels)
 
         fig, ax = plt.subplots()
         self._add_ocean(ax)
@@ -161,7 +164,9 @@ class OceanEnvironment:
         plt.xlim(x_limit)
         plt.ylim(y_limit)
         ani = animation.FuncAnimation(fig, animate, frames=time_periods, interval=200, repeat=True)
-        ani.save(os.path.join(save_filename))
+        writer = animation.writers['ffmpeg']
+        ff_writer = writer(fps=10, metadata=dict(artist='Jamie Edgecombe'), bitrate=1800)
+        ani.save(os.path.join(save_filename), writer=ff_writer)
 
     def _add_ocean(self, axis):
         """
