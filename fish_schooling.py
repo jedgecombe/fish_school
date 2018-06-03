@@ -22,6 +22,7 @@ TODO
    * NEXT - when fish have fish to follow, they just chill if their range is too far - this indicates something wrong with the random.choice of moves
    * NEXT UPDATE - finish on creating fish memory. Maybe add previous_rotation for consistency with previous_position
    * DBSCAN should happen according to follow distance - for this to work the clustering needs to happen for each species separately
+   * Enter fish brains into postgres database
 """
 
 
@@ -61,7 +62,6 @@ def main():
         fsh = Snapper(FISH_NAMES)
         fsh.make_it_rain(the_sea, old_johns_fish_mongers, place_attempts=3)
 
-    # the_sea.save_snapshot(output_name='output/initial_config.png')
     the_sea.passage_of_time(PERIODS, save_filename='output/movements.mp4')
 
 

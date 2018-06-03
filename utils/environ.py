@@ -89,8 +89,10 @@ class OceanEnvironment:
         for fsh, cluster in zip(self.population, shoal_labels):
             if cluster == -1:
                 fsh.shoal_id = None
+                fsh.current_colour = fsh.colour
             else:
                 fsh.shoal_id = cluster
+                fsh.current_colour = fsh.cluster_colour
 
             # fsh.shoal_id = None if cluster == -1 else cluster
 
@@ -146,26 +148,25 @@ class OceanEnvironment:
             for fsh in self.population:
                 fsh.swim()
                 ln = Line2D([fsh.previous_position[0], fsh.position[0]], [fsh.previous_position[1], fsh.position[1]],
-                            marker=fsh.custom_marker, markersize=fsh.size,  c=fsh.colour, linestyle='none',
+                            marker=fsh.custom_marker, markersize=fsh.size,  c=fsh.current_colour, linestyle='none',
                             markevery=[1])
 
                 ax.text(fsh.position[0], fsh.position[1], f'{fsh.name} ({fsh.unique_id})', fontsize=6)
                 ax.add_line(ln)
 
             population_coords = self._extract_fish_positions()
-            cluster_labels = DBSCAN(D=population_coords, eps=100, MinPts=2) # TODO update eps to close to follow_distance
+            cluster_labels = DBSCAN(points=population_coords, eps=30, min_points=2) # TODO update eps to close to follow_distance
             self._assign_shoals(shoal_labels=cluster_labels)
 
         fig, ax = plt.subplots()
         self._add_ocean(ax)
-        title = ax.text(0.5, 0.85, 'time 0')
 
         x_limit, y_limit = self._get_axes_limits()
         plt.xlim(x_limit)
         plt.ylim(y_limit)
         ani = animation.FuncAnimation(fig, animate, frames=time_periods, interval=200, repeat=True)
         writer = animation.writers['ffmpeg']
-        ff_writer = writer(fps=10, metadata=dict(artist='Jamie Edgecombe'), bitrate=1800)
+        ff_writer = writer(fps=5, metadata=dict(artist='Jamie Edgecombe'), bitrate=1800)
         ani.save(os.path.join(save_filename), writer=ff_writer)
 
     def _add_ocean(self, axis):

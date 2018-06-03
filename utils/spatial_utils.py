@@ -31,71 +31,67 @@ class SpatialUtils:
         return a - b
 
     @staticmethod
-    def _winding_number(coordinates: list, polygon: tuple) -> int:
-        """
-        approach is correct for simple and non simple polygons
-        :return: 0 if outside of polygon
-                 else inside of polygon
-        """
-        winding_number_counter = 0  # the winding number counter
-        vertices_num = len(polygon)
-
-        for i in range(vertices_num - 1):
-            vertex1 = polygon[i]
-            vertex2 = polygon[i + 1]
-            if vertex1[1] <= coordinates[1]:  # coordinates above start vertex
-                if vertex2[1] > coordinates[1]:  # coordinates below next vertex
-                    if SpatialUtils.is_left(vertex1, vertex2, coordinates) > 0:  # coordinates left of edge start vertex to end vertex
-                        winding_number_counter += 1  # valid up intersect
-            else:  # coordinates below start vertex
-                if vertex2[1] <= coordinates[1]:  # coordinates above next vertex
-                    if SpatialUtils.is_left(vertex1, vertex2, coordinates) < 0:  # coordinates left of edge start vertex to end vertex
-                        winding_number_counter -= 1  # a valid down intersect
-        return winding_number_counter
-
-    @staticmethod
-    def _crossing_number(coordinates: list, polygon: tuple) -> int:
-        """
-        approach only works for simple polygons (i.e. no self intersections)
-        :return: 0 if even number of crosses - outside of polygon
-                 1 if odd number of crosses - inside of polygon
-        """
-        crossing_number_counter = 0  # the crossing number counter
-
-        vertices_num = len(polygon)
-
-        for i in range(vertices_num - 1):
-            vertex1 = polygon[i]
-            vertex2 = polygon[i + 1]
-            # if coordinates above or level with start vertex and below next vertex
-            # or below start vertex and above or level with next vertex
-            if ((vertex1[1] <= coordinates[1] and vertex2[1] > coordinates[1])  # an upward crossing
-                or (vertex1[1] > coordinates[1] and vertex2[1] <= coordinates[1])):  # a downward crossing
-                # compute the actual edge-ray intersect x-coordinate
-                vt = (coordinates[1] - vertex1[1]) / float(vertex2[1] - vertex1[1])
-                # if coordinates left of intersect
-                if coordinates[0] < vertex1[0] + vt * (vertex2[0] - vertex1[0]):
-                    crossing_number_counter += 1  # a valid crossing
-
-        return crossing_number_counter % 2
-
-    @staticmethod
     def poly_contains_point(coordinates: list, polygon: tuple, method: str= 'winding') -> bool:
+        def winding_number(coords: list, poly: tuple) -> int:
+            """
+            approach is correct for simple and non simple polygons
+            :return: 0 if outside of polygon
+                     else inside of polygon
+            """
+            winding_number_counter = 0  # the winding number counter
+            vertices_num = len(poly)
+
+            for i in range(vertices_num - 1):
+                vertex1 = poly[i]
+                vertex2 = poly[i + 1]
+                if vertex1[1] <= coords[1]:  # coordinates above start vertex
+                    if vertex2[1] > coords[1]:  # coordinates below next vertex
+                        if SpatialUtils.is_left(vertex1, vertex2,
+                                                coords) > 0:  # coordinates left of edge start vertex to end vertex
+                            winding_number_counter += 1  # valid up intersect
+                else:  # coordinates below start vertex
+                    if vertex2[1] <= coords[1]:  # coordinates above next vertex
+                        if SpatialUtils.is_left(vertex1, vertex2,
+                                                coords) < 0:  # coordinates left of edge start vertex to end vertex
+                            winding_number_counter -= 1  # a valid down intersect
+            return winding_number_counter
+
+        def crossing_number(coords: list, poly: tuple) -> int:
+            """
+            approach only works for simple polygons (i.e. no self intersections)
+            :return: 0 if even number of crosses - outside of polygon
+                     1 if odd number of crosses - inside of polygon
+            """
+            crossing_number_counter = 0  # the crossing number counter
+
+            vertices_num = len(poly)
+
+            for i in range(vertices_num - 1):
+                vertex1 = poly[i]
+                vertex2 = poly[i + 1]
+                # if coordinates above or level with start vertex and below next vertex
+                # or below start vertex and above or level with next vertex
+                if ((vertex1[1] <= coords[1] and vertex2[1] > coords[1])  # an upward crossing
+                        or (vertex1[1] > coords[1] and vertex2[1] <= coords[1])):  # a downward crossing
+                    # compute the actual edge-ray intersect x-coordinate
+                    vt = (coords[1] - vertex1[1]) / float(vertex2[1] - vertex1[1])
+                    # if coordinates left of intersect
+                    if coords[0] < vertex1[0] + vt * (vertex2[0] - vertex1[0]):
+                        crossing_number_counter += 1  # a valid crossing
+
+            return crossing_number_counter % 2
+
         assert polygon[0] == polygon[-1]
 
         if method == 'winding':
-            number = SpatialUtils._winding_number(coordinates=coordinates, polygon=polygon)
+            number = winding_number(coords=coordinates, poly=polygon)
         elif method == 'crossing':
-            number = SpatialUtils._crossing_number(coordinates=coordinates, polygon=polygon)
+            number = crossing_number(coords=coordinates, poly=polygon)
         else:
             logger.warning('incorrect method selected, please choose from: [winding, crossing], exiting')
             sys.exit(1)
 
-        if number == 0:
-            contains = False
-        else:
-            contains = True
-        return contains
+        return False if number == 0 else True
 
     @staticmethod
     def extract_bounding_box(bounding_coordinates) -> tuple:
@@ -168,19 +164,18 @@ class SpatialUtils:
         # add cosine to x and sine to y to give new coord
         return starting_coordinates[0] + cosin_ang, starting_coordinates[1] + sin_ang
 
-
-    @staticmethod
-    def generate_circle_boundary(starting_coords: tuple, radius: int, increments: int=360) -> tuple:
-        """
-        creates a tuple of tuples with coordinates of a 'circle' (is actually a series of straight lines
-        :param starting_coords: coordinate points to draw circle around
-        :param radius: radius of circle
-        :param increments: number of lines to draw (i.e. precision), increase to increase precision
-        :return: coordinates of circle
-        """
-        out_list = []
-
-        for incr in range(increments):
-            pass
-
-        return tuple(out_list)
+    # @staticmethod
+    # def generate_circle_boundary(starting_coords: tuple, radius: int, increments: int=360) -> tuple:
+    #     """
+    #     creates a tuple of tuples with coordinates of a 'circle' (is actually a series of straight lines
+    #     :param starting_coords: coordinate points to draw circle around
+    #     :param radius: radius of circle
+    #     :param increments: number of lines to draw (i.e. precision), increase to increase precision
+    #     :return: coordinates of circle
+    #     """
+    #     out_list = []
+    #
+    #     for incr in range(increments):
+    #         pass
+    #
+    #     return tuple(out_list)

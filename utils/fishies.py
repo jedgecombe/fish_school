@@ -16,22 +16,20 @@ logger = logging.getLogger(__name__)
 
 
 class Fish:
-    def __init__(self, name_options: list, eats_fish: tuple=(), size=1, colour='white', max_movement_radius=0,
+    def __init__(self, name_options: list, eats_fish: tuple=(), size=1, colour='white', cluster_colour='black',
+                 max_movement_radius=0,
                  repel_dist=0, align_dist=0, follow_dist=0):
         """
-        :param environment: the ocean that the fish lives in
         :param eats_fish: the type of fish that this fish can eat
-        :param fish_name: this fish's name e.g. Joe
-        :param initial_position: the coordinates where this fish will be spawned
         :param size: the size of this fish
+        :param colour: colour of fish when not in shoal
+        :param cluster_colour: colour of fish when in shoal
         :param max_movement_radius: how far this fish can move in a single turn
         :param repel_dist: the max distance which the focal fish believes is too close to other fish
         :param align_dist: within this distance (and greater than repel distance), the focal fish will want to
             align with other fish of the same species
         :param follow_dist: within this distance (and greater than the align distance), the focal fish will want to
             get closer to other fish of the same species
-        :param place_attempts: the number of times that will try to spawn the fish before the fish dies
-        :param fish_image_filepath: the path to the image of the file
         """
 
         # ocean data
@@ -40,6 +38,8 @@ class Fish:
         # fish characteristics
         self.unique_id = None
         self.colour = colour
+        self.cluster_colour = cluster_colour
+        self.current_colour = self.colour
         self.eats_fish = eats_fish  # preys on these fish species
         self.size = size
         self.repel_distance = repel_dist  # less than this distance focal fish will swim away to avoid collision
@@ -133,7 +133,7 @@ class Fish:
     def distance_to_boundary(self):
         return SpatialUtils.distance_to_boundary(self.position, self.environment.boundary)
 
-    def swim(self, max_move_attempts: int=10) -> None:
+    def swim(self, max_move_attempts: int=30) -> None:
         def create_move_options(central_coordinate: list, shift_num: int) -> list:
             """creates four coordinates around a central coordinate - above, below, left, right"""
             return [(central_coordinate[0], central_coordinate[1] + shift_num),
@@ -143,6 +143,7 @@ class Fish:
 
         # becomes aware of environment
         self.update_nearby_waters()
+        preferred_alignment = None  # unless overwritten alignment to be decided based on movement direction
         # only move if it has somewhere it can go else stay in the same location
         if len(self.sub_env.available_moves) == 0:
             logger.debug(f'{self.name} ({self.unique_id}) could not move so just chilled at: {self.position}')
@@ -152,7 +153,6 @@ class Fish:
         elif len(self.sub_env.repel_fish) > 0:
             repel_fish = self.sub_env.extract_nearby_fish_names(self.sub_env.repel_fish)
             preferred_move = self._move_repel()
-            preferred_alignment = None  # alignment to be decided based on movement direction
             move_description = 'repel'
             logger.debug(f'{self.name} ({self.unique_id}) panicked and tried to swim away from: {repel_fish}')
         elif len(self.sub_env.align_fish) > 0:
@@ -163,12 +163,10 @@ class Fish:
         elif len(self.sub_env.follow_fish) > 0:
             follow_fish = self.sub_env.extract_nearby_fish_names(self.sub_env.follow_fish)
             preferred_move = self._move_follow()
-            preferred_alignment = None  # alignment to be decided based on movement direction
             move_description = 'follow'
             logger.debug(f'{self.name} ({self.unique_id}) wants to follow: {follow_fish}')
         else:
             preferred_move = self._move_random()
-            preferred_alignment = None  # alignment to be decided based on movement direction
             move_description = 'random'
             logger.debug(f'{self.name} ({self.unique_id}) could not see other fish so moved randomly')
 
@@ -186,16 +184,14 @@ class Fish:
             if move_to_try in self.sub_env.available_moves:
                 movement_direction = SpatialUtils.calc_angle(self.position, move_to_try)
                 rotation = movement_direction if preferred_alignment is None else preferred_alignment
-
                 self.previous_position = self.position
                 self.position = move_to_try
                 self.age += 1
-
                 break
-
-        if shift_attempt == max_move_attempts - 1:
+        else:
             logger.debug(f'{self.name} ({self.unique_id}) could not find anywhere to move so chilled out')
             rotation = self.rotation
+            self.previous_position = self.position
             move_description = 'moves available but stuck'
 
         dist = SpatialUtils.calc_distance(self.position, self.previous_position)
@@ -204,7 +200,7 @@ class Fish:
                      f' primary motivation: {move_description} \n'
                      f' move choice: ({shift_attempt + 1} / {max_move_attempts}) \n'
                      f' moved from: {self.previous_position} to {self.position} (distance = {dist}) \n'
-                     f' rotation from: {self.rotation} to {rotation} \n'
+                     f' rotation from: {round(self.rotation, 0)} to {round(rotation, 0)} \n'
                      f' new shoal id: {self.shoal_id}')
         self.create_memory(move_description=move_description, new_rotation=rotation,
                            move_distance=dist)
@@ -295,8 +291,8 @@ class Fish:
 
 class Snapper(Fish):
     def __init__(self, name_options: list):
-        super().__init__(size=10, max_movement_radius=10, repel_dist=2, colour='orange',
-                         align_dist=5, follow_dist=10, eats_fish=(), name_options=name_options)
+        super().__init__(size=10, max_movement_radius=10, repel_dist=2, colour='#fcba76', cluster_colour='#FF8100',
+                         align_dist=5, follow_dist=30, eats_fish=(), name_options=name_options)
         verts = [
             (-5., -4.),  # left, bottom of tail
             (-2., -1.),  # left, top of tail
@@ -321,7 +317,7 @@ class Snapper(Fish):
 
 class Shark(Fish):
     def __init__(self, name_options: list):
-        super().__init__(size=30, max_movement_radius=10, repel_dist=1, colour='gray',
+        super().__init__(size=30, max_movement_radius=30, repel_dist=1, colour='#D1D7D7', cluster_colour='#8C9B9B',
                          align_dist=3, follow_dist=15, eats_fish=(Snapper, ), name_options=name_options)
 
         verts = [
