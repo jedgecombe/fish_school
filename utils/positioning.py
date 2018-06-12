@@ -1,5 +1,6 @@
 import logging
-import random
+
+import numpy as np
 
 from utils.environ import OceanEnvironment
 from utils.spatial_utils import SpatialUtils
@@ -17,8 +18,6 @@ class NearbyWaters:
         """
         self.fish = fish
         self.ocean = ocean
-        self.centre_coordinates = self.fish.position
-        self.environ_radius = self.fish.follow_distance
 
         self.repel_fish, self.align_fish, self.follow_fish = self.find_nearby_fish()
         self.all_nearby_fish = self.repel_fish + self.align_fish + self.follow_fish
@@ -38,17 +37,36 @@ class NearbyWaters:
     def update_available_moves(self) -> list:
         """return the moves that are within fish's movement radius, not occupied by other fish, and within the
                 boundary
-                """
-        if self.fish.welfare == 'dead':
-            empty_coordinates = [(666, 666)]
-        else:
-            coords_within_radius = [(i[0] + self.fish.position[0], i[1] + self.fish.position[1]) for i in
-                                    self.fish.moves_within_range]
-            environ_coordinates = self.find_coordinates_within_sub_environment(coords_within_radius,
-                                                                               self.ocean.boundary)
-            empty_coordinates = self.find_empty_coordinates(all_coordinates=environ_coordinates,
-                                                            nearby_fish=self.all_nearby_fish)
+        """
+        # find coordinates within range of fish
+        pos = self.fish.position
+        coords_within_radius = self.find_moves_within_max_range()
+        environ_coordinates = self.find_coordinates_within_sub_environment(coords_within_radius, self.ocean.boundary)
+        empty_coordinates = self.find_empty_coordinates(all_coordinates=environ_coordinates,
+                                                        nearby_fish=self.all_nearby_fish)
         return empty_coordinates
+
+    def find_moves_within_max_range(self) -> list:
+        """
+        searches a rectangle of points within a fish's maximum movement radius (from point 0, 0)
+          then adds them
+        finds list of moves that are within a fish's maximum movement radius
+        cycles through all coordinate pairs of inside bounding box of centre coords +- circle_radius
+            then compares whether coordinate generated is within the circle_radius
+        :return: list of coordinates within a circle within radius = circle_radius
+        """
+        coords_within_radius = []
+        # create a range to search, normalised based on how far fish can move to stop range getting enormous
+        search_range = np.arange(start=-self.fish.max_movement_radius, stop=self.fish.max_movement_radius + 0.001,
+                                 step=1)
+        for x_increment in search_range:
+            for y_increment in search_range:
+                test_coord = [x_increment, y_increment]
+                dist_to_centre = SpatialUtils.calc_distance(test_coord, [0, 0])
+                if dist_to_centre <= self.fish.max_movement_radius:
+                    adj_coord = [test_coord[0] + self.fish.position[0], test_coord[1] + self.fish.position[1]]
+                    coords_within_radius.append(adj_coord)
+        return coords_within_radius
 
     @staticmethod
     def find_coordinates_within_sub_environment(coordinate_list: list, environment_boundary: tuple) -> list:
@@ -77,7 +95,7 @@ class NearbyWaters:
             updated_coordinate_list = []
             for coord in all_coordinates:
                 for fsh in nearby_fish:
-                    space_necessary = self.fish.size
+                    space_necessary = self.fish.size / 2
                     if SpatialUtils.calc_distance(coord, fsh.position) >= space_necessary:
                         updated_coordinate_list.append(coord)
         return updated_coordinate_list
@@ -109,12 +127,13 @@ class NearbyWaters:
         return repel_fish, align_fish, follow_fish
 
     def find_all_other_fish(self) -> list:
-        """find other fish in their current positions
+        """
+        find other fish in their current positions
             remove current fish and dead fish from list of fish being considered
         """
         other_fish = []
         for fish in self.ocean.population:
-            if fish.unique_id != self.fish.unique_id and fish.welfare != 'dead':
+            if fish.unique_id != self.fish.unique_id:
                 other_fish.append(fish)
         return other_fish
 

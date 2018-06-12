@@ -33,7 +33,7 @@ class Fish:
         """
 
         # ocean data
-        self.environment = OceanEnvironment(bounding_coordinates=())
+        self.environment = OceanEnvironment(bounding_coordinates=(), minimum_shoal_size=2)
 
         # fish characteristics
         self.unique_id = None
@@ -51,18 +51,13 @@ class Fish:
         self.shoal_id = None
 
         # fish positional information
-        self.moves_within_range = []
         self.position = []
         self.previous_position = []
         self.rotation = 0
-        self.dist_to_closest_edge = 1000
-
-        # fish characteristics that depend on positional information
-        # TODO probably can remove this now have the concept of FishMongers
-        self.welfare = 'alive' if self.position != (666, 666) else 'dead'
+        self.dist_to_closest_edge = 9999999
 
         # generate fish's local environment
-        self.sub_env = NearbyWaters(self, self.environment)
+        self.sub_env = None
 
         # next move information
         self.incentive_to_move = 0
@@ -86,7 +81,6 @@ class Fish:
         else:
             ocean.population.append(self)
             self.environment = ocean
-            self.moves_within_range = self.find_moves_within_max_range()
             # random starting location
             self.rotation = self._update_rotation(random.choice(tuple(range(0, 360, 45))))
             self.dist_to_closest_edge = self.distance_to_boundary()
@@ -97,7 +91,7 @@ class Fish:
         bbox = SpatialUtils.extract_bounding_box(target_ocean.boundary)
         for attempt in range(place_attempts):
             # generate random coordinate within bounding box
-            proposed_position = (random.randint(bbox[0], bbox[2]), random.randint(bbox[1], bbox[3]))
+            proposed_position = [random.randint(bbox[0], bbox[2]), random.randint(bbox[1], bbox[3])]
             # check if it is within the polygon (i.e. the ocean)
             if SpatialUtils.poly_contains_point(coordinates=proposed_position, polygon=target_ocean.boundary,
                                                 method='winding'):
@@ -109,26 +103,8 @@ class Fish:
                             f'{proposed_position}. Place attempt: {attempt + 1}')
 
     def update_nearby_waters(self):
+        """update knowledge of surroundings including other fish and available moves"""
         self.sub_env = NearbyWaters(fish=self, ocean=self.environment)
-
-    def find_moves_within_max_range(self) -> list:
-        """
-        finds list of moves that are within a fish's maximum movement radius
-        cycles through all coordinate pairs of inside bounding box of centre coords +- circle_radius
-            then compares whether coordinate generated is within the circle_radius
-        :return: list of coordinates within a circle within radius = circle_radius
-        """
-        coords_within_radius = []
-        test_list = []
-        search_range = range(-self.max_movement_radius, self.max_movement_radius + 1)
-        for num, x_increment in enumerate(search_range):
-            for num2, y_increment in enumerate(search_range):
-                test_coord = (x_increment, y_increment)
-                dist_to_centre = SpatialUtils.calc_distance(test_coord, (0, 0))
-                if dist_to_centre <= self.max_movement_radius:
-                    test_list.append((num, num2))
-                    coords_within_radius.append(test_coord)
-        return coords_within_radius
 
     def distance_to_boundary(self):
         return SpatialUtils.distance_to_boundary(self.position, self.environment.boundary)
@@ -136,10 +112,10 @@ class Fish:
     def swim(self, max_move_attempts: int=30) -> None:
         def create_move_options(central_coordinate: list, shift_num: int) -> list:
             """creates four coordinates around a central coordinate - above, below, left, right"""
-            return [(central_coordinate[0], central_coordinate[1] + shift_num),
-                    (central_coordinate[0], central_coordinate[1] - shift_num),
-                    (central_coordinate[0] + shift_num, central_coordinate[1]),
-                    (central_coordinate[0] - shift_num, central_coordinate[1])]
+            return [[central_coordinate[0], central_coordinate[1] + shift_num],
+                    [central_coordinate[0], central_coordinate[1] - shift_num],
+                    [central_coordinate[0] + shift_num, central_coordinate[1]],
+                    [central_coordinate[0] - shift_num, central_coordinate[1]]]
 
         # becomes aware of environment
         self.update_nearby_waters()
@@ -181,6 +157,7 @@ class Fish:
             move_to_try = random.choice(move_options)
             move_options.remove(move_to_try)
             # choose if this move is available
+            avail = self.sub_env.available_moves
             if move_to_try in self.sub_env.available_moves:
                 movement_direction = SpatialUtils.calc_angle(self.position, move_to_try)
                 rotation = movement_direction if preferred_alignment is None else preferred_alignment
@@ -193,6 +170,7 @@ class Fish:
             rotation = self.rotation
             self.previous_position = self.position
             move_description = 'moves available but stuck'
+            logger.debug('available moves: ')
 
         dist = SpatialUtils.calc_distance(self.position, self.previous_position)
 
@@ -253,7 +231,7 @@ class Fish:
                                   dist_to_closest - self.repel_distance + 1, step=4)])
         optimal_move = SpatialUtils.new_position_angle_length(starting_coordinates=self.position, angle=new_rotation,
                                                               distance=move_dist)
-        return optimal_move, new_rotation
+        return optimal_move, None
 
     def _move_follow(self) -> float:
         """
@@ -317,17 +295,16 @@ class Snapper(Fish):
 
 class Shark(Fish):
     def __init__(self, name_options: list):
-        super().__init__(size=30, max_movement_radius=30, repel_dist=1, colour='#D1D7D7', cluster_colour='#8C9B9B',
+        super().__init__(size=30, max_movement_radius=20, repel_dist=1, colour='#D1D7D7', cluster_colour='#8C9B9B',
                          align_dist=3, follow_dist=15, eats_fish=(Snapper, ), name_options=name_options)
-
         verts = [
-            (-5., -4.),  # left, bottom of tail
-            (-2., -1.),  # left, top of tail
-            (-4., 3.),  # leftmost part of head
+            (-4., -7.),  # left, bottom of tail
+            (-1., -1.),  # left, top of tail
+            (-3., 3.),  # leftmost part of head
             (0., 7.),  # top of head
-            (4., 3.),  # rightmost part of head
-            (2., -1.),  # right, top of tail
-            (5., -4.),  # right, bottom of tail
+            (3., 3.),  # rightmost part of head
+            (1., -1.),  # right, top of tail
+            (4., -7.),  # right, bottom of tail
             (0., 0.),  # ignored - incl. for close poly arg
         ]
 

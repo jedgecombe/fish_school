@@ -52,7 +52,7 @@ class SpatialUtils:
                 else:  # coordinates below start vertex
                     if vertex2[1] <= coords[1]:  # coordinates above next vertex
                         if SpatialUtils.is_left(vertex1, vertex2,
-                                                coords) < 0:  # coordinates left of edge start vertex to end vertex
+                                                coords) < 0:  # coordinates right of edge start vertex to end vertex
                             winding_number_counter -= 1  # a valid down intersect
             return winding_number_counter
 

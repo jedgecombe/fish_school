@@ -9,8 +9,6 @@ from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
-import numpy as np
-# from sklearn.cluster import DBSCAN
 
 from utils.spatial_utils import SpatialUtils
 from utils.dbscan import DBSCAN
@@ -19,15 +17,16 @@ logger = logging.getLogger(__name__)
 
 
 class OceanEnvironment:
-    def __init__(self, bounding_coordinates: tuple):
+    def __init__(self, bounding_coordinates: tuple, minimum_shoal_size: int):
         """
         :param bounding_coordinates: should be tuple of tuples (x, y) listed in counterclockwise direction
             ending with the first coordinate to close path
-        :param default_fish_names: names to randomly choose fish from
+        :param minimum_shoal_size: minimum number of fish required to be considered a shoal (used during clustering)
         """
         self.boundary = bounding_coordinates
         self.population = []
-        self.populated_sorted = self._sort_population_according_to_incentive()
+        self.populated_sorted = []
+        self.min_shoal_size = minimum_shoal_size
         self.sea_colour = '#006994'
         self.move_metadata = []
 
@@ -40,50 +39,6 @@ class OceanEnvironment:
             fish_data = self._extract_fish_brains(fish)
             logger.debug(f'fish: {fish_data}')
         logger.info(f'number of fish in the ocean: {len(self.population)}')
-
-    # def let_time_pass(self, moves_in_time_period: int):
-    #     """
-    #     first recalculate all fish's incentives to move
-    #     find fish who want to move most
-    #     :param moves_in_time_period: number of moves for each fish
-    #     :return: nothing, just output logs
-    #     """
-    #
-    #     for move in range(moves_in_time_period):
-    #         logger.info(f'\n move: {move}')
-    #
-    #         for fsh in self.population:
-    #             initial_position = fsh.position
-    #             initial_rotation = fsh.rotation
-    #             fsh.swim()
-    #             dist = SpatialUtils.calc_distance(initial_position, fsh.position)
-    #             fsh.age += 1
-    #             logger.debug(f'{fsh.name} ({type(fsh)}) moved from {initial_position} to {fsh.position}, '
-    #                          f'distance: {dist}, rotation from {initial_rotation} to {fsh.rotation}')
-    #
-    #     population_coords = self._extract_fish_positions()
-    #     db = DBSCAN(eps=10, min_samples=2).fit(population_coords)  # eps should be updated to be something close to follow_distance
-    #     self._assign_shoals(shoal_labels=db.labels_)
-
-        # probably could do this in a more intelligent way
-
-        # self.assess_desire_to_move()
-        ## following is for when using predator count to determine whether or not they move
-        # for fsh_num in range(moves_in_time_period):
-        #     self.assess_desire_to_move()
-        #     agitated_fish = self.populated_sorted[0]  # select fish with highest incentive to move
-        #     initial_position = agitated_fish.position
-        #     initial_rotation = agitated_fish.rotation
-        #     next_pos = agitated_fish.choose_next_move()
-        #     next_rotation = agitated_fish.rotation
-        #     agitated_fish.position = next_pos
-        #     dist = SpatialUtils.calc_distance(initial_position, next_pos)
-        #     logger.debug('{} ({}) moved from {} to {}, distance: {}, rotation from {} to {}'.format(agitated_fish.name,
-        #                                                                                             agitated_fish.species,
-        #                                                                                             initial_position,
-        #                                                                                             next_pos, dist,
-        #                                                                                             initial_rotation,
-        #                                                                                             next_rotation))
 
     def _assign_shoals(self, shoal_labels):
         for fsh, cluster in zip(self.population, shoal_labels):
@@ -151,22 +106,26 @@ class OceanEnvironment:
                             marker=fsh.custom_marker, markersize=fsh.size,  c=fsh.current_colour, linestyle='none',
                             markevery=[1])
 
-                ax.text(fsh.position[0], fsh.position[1], f'{fsh.name} ({fsh.unique_id})', fontsize=6)
+                ax.text(fsh.position[0], fsh.position[1], f'{fsh.name}', fontsize=8)
+                # ax.text(fsh.position[0], fsh.position[1], f'{fsh.name} ({fsh.unique_id})', fontsize=6)
                 ax.add_line(ln)
 
             population_coords = self._extract_fish_positions()
-            cluster_labels = DBSCAN(points=population_coords, eps=30, min_points=2) # TODO update eps to close to follow_distance
+            cluster_labels = DBSCAN(points=population_coords, eps=30, min_points=self.min_shoal_size) # TODO update eps to close to follow_distance
             self._assign_shoals(shoal_labels=cluster_labels)
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(9, 7))
         self._add_ocean(ax)
 
         x_limit, y_limit = self._get_axes_limits()
         plt.xlim(x_limit)
         plt.ylim(y_limit)
-        ani = animation.FuncAnimation(fig, animate, frames=time_periods, interval=200, repeat=True)
+        ax.set_yticks([])
+        ax.set_xticks([])
+        # to update speed on animation need to play with interval and fps
+        ani = animation.FuncAnimation(fig, animate, frames=time_periods, interval=50)
         writer = animation.writers['ffmpeg']
-        ff_writer = writer(fps=5, metadata=dict(artist='Jamie Edgecombe'), bitrate=1800)
+        ff_writer = writer(fps=5, metadata=dict(artist='Jamie Edgecombe'))
         ani.save(os.path.join(save_filename), writer=ff_writer)
 
     def _add_ocean(self, axis):
@@ -209,5 +168,4 @@ class OceanEnvironment:
 
 class FishMongers:
     def __init__(self):
-        # self.tinned_tuna = []
         self.population = []
