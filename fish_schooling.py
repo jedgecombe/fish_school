@@ -27,6 +27,8 @@ TODO
    * update DBSCAN to be class with .fit() a la sklearn. THINK border points should only be used to connect to other points if they have len(neighbours) > min_points. https://github.com/rugbyprof/4553-Spatial-DS/wiki/Dbscan
    * sure there is something up with the available options generated
    * the fish don't really need to know what moves are available - instead choose a move and check whether it available
+   * add __repr__ to fish and ocean classes
+   * would be cool to add some kind of decorators
 """
 
 
