@@ -7,13 +7,15 @@ sea = Ocean()
 
 def setup():
   size(640, 360)
+  sea.create_ocean()
 
 def draw():
-    background(255)
+    sea.create_ocean()
+    # rect(0, 0, 150, 150)
     sea.swim()
   
 def mousePressed():
-    Fish(0, sea, repel_distance=20, x=mouseX, y=mouseY)
+    Fish(0, sea, separation_distance=30, x=mouseX, y=mouseY)
 
         
     
